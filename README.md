@@ -177,13 +177,16 @@ ADMIN_TOKEN=... npm run smoke:oauth-isolation
 
 ## Validation
 
-Recorded on 2026-09-16 against this branch after `npm ci`:
+Recorded on 2026-09-16 against this branch after `npm ci` (Node v22.14.0, npm 10.9.7, Wrangler 4.78.0):
 
 | Command | Outcome |
 |---------|---------|
-| `npm run type-check` | See the pull request for the latest recorded result |
-| `npm run test:unit` | See the pull request for the latest recorded result |
-| `bash -n scripts/init-cloudflare.sh` | Syntax-checked as part of this refresh |
+| `npm run type-check` | Pass (`tsc`, exit 0) |
+| `npm run test:unit` | Pass — Vitest 4.1.10, 4 files, **36 tests** |
+| `npm test` | Pass (`type-check` + `test:unit`) |
+| `bash -n scripts/init-cloudflare.sh` | Pass |
+| `npm run cf:check` | Pass — prints D1/KV/Vectorize bindings; no mutations |
+| `bash scripts/init-cloudflare.sh --local` | Pass — applied `schema.sql` to local D1 and verified required tables |
 
 Re-run locally with `npm ci && npm test`.
 

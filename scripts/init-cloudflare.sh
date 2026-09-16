@@ -166,7 +166,16 @@ check_prereqs() {
 }
 
 wrangler_logged_in() {
-  wrangler whoami >/dev/null 2>&1
+  local out rc
+  set +e
+  out="$(wrangler whoami 2>&1)"
+  rc=$?
+  set -e
+  [[ "$rc" -eq 0 ]] || return 1
+  if printf '%s' "$out" | grep -qi 'not authenticated'; then
+    return 1
+  fi
+  return 0
 }
 
 extract_json() {
@@ -304,7 +313,16 @@ apply_schema() {
   log "Applying $SCHEMA_FILE to D1 '$name' ($target) — idempotent CREATE IF NOT EXISTS"
   local flags=()
   mapfile -t flags < <(d1_flags)
-  run wrangler d1 execute "$name" "${flags[@]}" --file="$SCHEMA_FILE"
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    run wrangler d1 execute "$name" "${flags[@]}" --file="$SCHEMA_FILE"
+    return
+  fi
+  local out
+  if ! out="$(wrangler d1 execute "$name" "${flags[@]}" --file="$SCHEMA_FILE" 2>&1)"; then
+    printf '%s\n' "$out" >&2
+    fail "Failed to apply schema to D1 '$name'"
+  fi
+  log "$(printf '%s\n' "$out" | grep -E 'commands executed|Executing on' | paste -sd '; ' -)"
 }
 
 verify_schema() {

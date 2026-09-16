@@ -168,6 +168,17 @@ After `d1 create` / `kv namespace create`, copy the printed `database_id` and KV
 
 ## Validation
 
+Recorded on 2026-09-16 after `npm ci` (Node v22.14.0, npm 10.9.7, Wrangler 4.78.0):
+
+| Command | Outcome |
+|---------|---------|
+| `npm run type-check` | Pass |
+| `npm run test:unit` | Pass — 4 files, 36 tests |
+| `npm test` | Pass |
+| `bash -n scripts/init-cloudflare.sh` | Pass |
+| `npm run cf:check` | Pass |
+| `bash scripts/init-cloudflare.sh --local` | Pass — local D1 schema applied and verified |
+
 ```bash
 npm ci
 npm run type-check
