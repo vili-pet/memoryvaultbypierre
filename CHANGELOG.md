@@ -7,6 +7,11 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+### Changed
+- Repository metadata, clone URLs, issue links, and the viewer changelog now point at [vili-pet/memoryvaultbypierre](https://github.com/vili-pet/memoryvaultbypierre) instead of `guirguispierre/memoryvault`.
+- Cloudflare setup is documented in `docs/cloudflare.md` with an idempotent `scripts/init-cloudflare.sh` workflow for local and remote D1, KV, and Vectorize.
+- MCP client examples for Claude Desktop, Cursor, and Claude Code live under `examples/mcp/` with placeholders only.
+
 ### Added
 - Viewer settings panel now supports folder-style expandable sections (`General & Search`, `Graph Defaults`, `Appearance & Session`, `Notifications`, `Semantic Index`) to reduce visual overload.
 - Viewer settings now include a scrollable settings body so long configurations remain usable on smaller viewports while action buttons stay accessible.

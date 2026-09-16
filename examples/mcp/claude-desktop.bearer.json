@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "memoryvault": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://YOUR_WORKER.YOUR_SUBDOMAIN.workers.dev/mcp",
+        "--header",
+        "Authorization: Bearer ${AUTH_SECRET}"
+      ],
+      "env": {
+        "AUTH_SECRET": "YOUR_AUTH_SECRET"
+      }
+    }
+  }
+}
