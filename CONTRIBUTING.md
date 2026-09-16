@@ -10,11 +10,13 @@ Thanks for your interest in contributing!
 
 ## Local Setup
 
-1. Fork and clone the repository
+1. Fork and clone [github.com/vili-pet/memoryvaultbypierre](https://github.com/vili-pet/memoryvaultbypierre)
 2. Install dependencies: `npm install`
-3. Copy secrets template: `cp .dev.vars.example .dev.vars`
-4. Initialize local D1: `npx wrangler d1 execute ai-memory --local --file=schema.sql`
-5. Start dev server: `npm run dev`
+3. Copy secrets template: `cp .dev.vars.example .dev.vars` and replace the placeholder values
+4. Initialize local D1 (idempotent): `npm run cf:init:local`
+5. Start the worker: `npm run dev`
+
+See [docs/cloudflare.md](./docs/cloudflare.md) for remote D1/KV/Vectorize setup and production deploy.
 
 ## Project Structure
 
@@ -54,9 +56,9 @@ Thanks for your interest in contributing!
 
 1. Fork the repo and create a feature branch
 2. Make your changes
-3. Run `npm run type-check`
+3. Run `npm test` (typecheck + unit tests)
 4. Open a PR with a clear description of what changed and why
 
 ## Reporting Issues
 
-Open an issue at [github.com/guirguispierre/memoryvault/issues](https://github.com/guirguispierre/memoryvault/issues).
+Open an issue at [github.com/vili-pet/memoryvaultbypierre/issues](https://github.com/vili-pet/memoryvaultbypierre/issues).

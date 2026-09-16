@@ -1,3 +1,13 @@
+# Local Wrangler secrets. Copy to .dev.vars and replace the placeholders.
+#   cp .dev.vars.example .dev.vars
+# Never commit .dev.vars. Generate values with: openssl rand -hex 32
+
+# Signs JWTs and unlocks legacy bearer auth (Authorization: Bearer <AUTH_SECRET>).
 AUTH_SECRET=replace-with-a-long-random-secret
+
+# Required for POST /register unless every redirect_uri is on a trusted host
+# (claude.ai, poke.com). Used by OAuth dynamic client registration.
 ADMIN_TOKEN=replace-with-a-long-random-admin-token
+
+# Extra OAuth redirect hostnames. localhost and 127.0.0.1 are always allowed.
 OAUTH_REDIRECT_DOMAIN_ALLOWLIST=localhost,127.0.0.1
