@@ -4684,7 +4684,7 @@ export function viewerScript(): string {
           dismissUpdateBanner();
           break;
         case 'open-full-changelog':
-          window.open('https://github.com/guirguispierre/memoryvault/blob/main/CHANGELOG.md', '_blank', 'noopener');
+          window.open('https://github.com/vili-pet/memoryvaultbypierre/blob/master/CHANGELOG.md', '_blank', 'noopener');
           break;
         case 'expand-card':
           expandCard(Number(target.getAttribute('data-card-index') || target.getAttribute('data-idx') || '-1'));

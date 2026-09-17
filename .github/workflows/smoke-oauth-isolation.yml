@@ -6,7 +6,7 @@ on:
       base_url:
         description: "Base URL for deployed MemoryVault service"
         required: true
-        default: "https://ai-memory-mcp.guirguispierre.workers.dev"
+        default: "https://YOUR_WORKER.YOUR_SUBDOMAIN.workers.dev"
 
 jobs:
   smoke:

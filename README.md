@@ -4,6 +4,8 @@ A self-hosted, graph-aware memory server for AI assistants. Built on Cloudflare 
 
 MemoryVault gives AI clients (Claude, ChatGPT, etc.) persistent memory across sessions via the [Model Context Protocol (MCP)](https://modelcontextprotocol.io). Store notes, facts, and journal entries. Link related memories into a knowledge graph. Search with hybrid lexical + semantic retrieval.
 
+**Repository:** [github.com/vili-pet/memoryvaultbypierre](https://github.com/vili-pet/memoryvaultbypierre)
+
 ## Features
 
 - **40+ MCP tools** — memory CRUD, graph linking, conflict detection, objectives, snapshots, and more
@@ -20,57 +22,41 @@ MemoryVault gives AI clients (Claude, ChatGPT, etc.) persistent memory across se
 1. **Clone and install**
 
 ```bash
-git clone https://github.com/guirguispierre/memoryvault.git
-cd memoryvault
+git clone https://github.com/vili-pet/memoryvaultbypierre.git
+cd memoryvaultbypierre
 npm install
 ```
 
-2. **Configure secrets**
+2. **Configure local secrets**
 
 ```bash
 cp .dev.vars.example .dev.vars
-# Edit .dev.vars with your own secrets
+# Replace AUTH_SECRET and ADMIN_TOKEN. Generate with: openssl rand -hex 32
 ```
 
-3. **Set up Cloudflare resources**
+3. **Initialize local D1**
 
 ```bash
-# Create D1 database
-npx wrangler d1 create ai-memory
-
-# Update wrangler.toml with your database_id
-
-# Create KV namespace for rate limiting
-npx wrangler kv namespace create RATE_LIMIT_KV
-# Update wrangler.toml with the KV namespace id
-
-# Create Vectorize indexes (for semantic search)
-npx wrangler vectorize create ai-memory-semantic-v1 --dimensions=768 --metric=cosine
+npm run cf:init:local
 ```
 
-4. **Initialize database schema**
+This applies `schema.sql` to the local D1 database (idempotent) and checks that `.dev.vars` exists. It does not print secret values.
 
-```bash
-npx wrangler d1 execute ai-memory --local --file=schema.sql
-```
-
-5. **Run locally**
+4. **Run locally**
 
 ```bash
 npm run dev
 ```
 
-## Deploy to Production
+The worker listens on `http://127.0.0.1:8787`. MCP is at `/mcp`; the viewer is at `/view`.
+
+For remote D1, KV, Vectorize, secrets, and deploy, see [docs/cloudflare.md](./docs/cloudflare.md). Short version:
 
 ```bash
-# Set secrets
+npx wrangler login
+npm run cf:init:remote -- --update-config
 npx wrangler secret put AUTH_SECRET
 npx wrangler secret put ADMIN_TOKEN
-
-# Apply schema to remote D1
-npx wrangler d1 execute ai-memory --remote --file=schema.sql
-
-# Deploy
 npm run deploy
 ```
 
@@ -79,19 +65,55 @@ npm run deploy
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `AUTH_SECRET` | Yes | Signs JWTs and secures legacy bearer auth |
-| `ADMIN_TOKEN` | Yes | Required for `POST /register` (OAuth client registration) |
+| `ADMIN_TOKEN` | Yes | Required for `POST /register` (OAuth client registration) unless every `redirect_uri` is on `claude.ai` or `poke.com` |
 | `OAUTH_REDIRECT_DOMAIN_ALLOWLIST` | No | Comma-separated hostnames for OAuth redirect URIs. `localhost` and `127.0.0.1` are always allowed |
+
+Local: set these in `.dev.vars` (gitignored). Production: `npx wrangler secret put <NAME>`. Do not put secrets in `wrangler.toml`.
+
+`wrangler.toml` bindings (account-specific IDs):
+
+| Binding | Resource | Default name |
+|---------|----------|--------------|
+| `DB` | D1 | `ai-memory` |
+| `RATE_LIMIT_KV` | KV | `RATE_LIMIT_KV` |
+| `MEMORY_INDEX` | Vectorize | `ai-memory-semantic-v1` (768 dims, cosine) |
+| `AI` | Workers AI | `@cf/baai/bge-base-en-v1.5` |
+
+`npm run cf:check` prints the current IDs without mutating anything.
 
 ## MCP Integration
 
-Point your MCP client to:
+Worker entry point: `src/index.ts` (`npm run dev` / `npm run deploy`). MCP endpoint: `/mcp`.
+
 ```
-https://<your-worker>.<your-subdomain>.workers.dev/mcp
+Local:      http://127.0.0.1:8787/mcp
+Production: https://<YOUR_WORKER>.<YOUR_SUBDOMAIN>.workers.dev/mcp
 ```
 
-**OAuth mode (recommended):** Leave the API key empty. The server responds with OAuth discovery metadata. Your client handles the flow automatically.
+Default worker name is `ai-memory-mcp`.
 
-**Legacy bearer mode:** Send `Authorization: Bearer <AUTH_SECRET>` for simple setups.
+**OAuth mode (recommended):** Leave the API key empty. The server responds with OAuth discovery metadata. Your client handles PKCE (`S256`).
+
+**Legacy bearer mode:** Send `Authorization: Bearer <AUTH_SECRET>`.
+
+Copy-ready client configs (placeholders only — no credentials):
+
+- [examples/mcp/claude-desktop.oauth.json](./examples/mcp/claude-desktop.oauth.json) — Claude Desktop, native remote URL
+- [examples/mcp/claude-desktop.mcp-remote.json](./examples/mcp/claude-desktop.mcp-remote.json) — Claude Desktop via `npx mcp-remote`
+- [examples/mcp/claude-desktop.bearer.json](./examples/mcp/claude-desktop.bearer.json) — Claude Desktop + bearer `AUTH_SECRET`
+- [examples/mcp/claude-desktop.local.json](./examples/mcp/claude-desktop.local.json) — Claude Desktop against `npm run dev`
+- [examples/mcp/cursor.mcp.json](./examples/mcp/cursor.mcp.json) — Cursor `.cursor/mcp.json`
+
+Claude Desktop config path: `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS), `%APPDATA%\Claude\claude_desktop_config.json` (Windows), `~/.config/Claude/claude_desktop_config.json` (Linux).
+
+Claude Code:
+
+```bash
+claude mcp add --transport http memoryvault \
+  https://YOUR_WORKER.YOUR_SUBDOMAIN.workers.dev/mcp
+```
+
+Full placeholder table and auth notes: [examples/mcp/README.md](./examples/mcp/README.md).
 
 ## Architecture
 
@@ -134,23 +156,43 @@ https://<your-worker>.<your-subdomain>.workers.dev/mcp
 ## Development
 
 ```bash
-npm run dev          # Start local worker
-npm run type-check   # TypeScript check
-npm run deploy       # Deploy to Cloudflare
+npm run dev            # Start local worker
+npm run type-check     # TypeScript check
+npm run test:unit      # Vitest
+npm test               # type-check + unit tests
+npm run cf:check       # Print Cloudflare bindings and prerequisites
+npm run cf:init:local  # Idempotent local D1 schema
+npm run deploy         # Deploy to Cloudflare
 ```
 
-**Smoke test:**
+**Smoke test** (needs a running worker and `ADMIN_TOKEN`; does not print tokens):
+
 ```bash
 ADMIN_TOKEN=... npm run smoke:oauth-isolation
 ```
 
 **Notes:**
 - Semantic search requires Workers AI/Vectorize bindings — use `npx wrangler dev --remote` for full functionality
-- Local dev uses `--local` D1 by default
+- Local D1 is created under `.wrangler/` and is gitignored
+
+## Validation
+
+Recorded on 2026-09-16 against this branch after `npm ci` (Node v22.14.0, npm 10.9.7, Wrangler 4.78.0):
+
+| Command | Outcome |
+|---------|---------|
+| `npm run type-check` | Pass (`tsc`, exit 0) |
+| `npm run test:unit` | Pass — Vitest 4.1.10, 4 files, **36 tests** |
+| `npm test` | Pass (`type-check` + `test:unit`) |
+| `bash -n scripts/init-cloudflare.sh` | Pass |
+| `npm run cf:check` | Pass — prints D1/KV/Vectorize bindings; no mutations |
+| `bash scripts/init-cloudflare.sh --local` | Pass — applied `schema.sql` to local D1 and verified required tables |
+
+Re-run locally with `npm ci && npm test`.
 
 ## Contributing
 
-See [CONTRIBUTING.md](./CONTRIBUTING.md).
+See [CONTRIBUTING.md](./CONTRIBUTING.md). Issues: [github.com/vili-pet/memoryvaultbypierre/issues](https://github.com/vili-pet/memoryvaultbypierre/issues).
 
 ## License
 

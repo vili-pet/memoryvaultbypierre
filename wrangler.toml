@@ -1,24 +1,38 @@
+# MemoryVault Cloudflare Worker
+# Resource IDs below are account-specific. New deployments should run
+# `npm run cf:init:remote -- --update-config` (or copy IDs in by hand).
+# Secrets (AUTH_SECRET, ADMIN_TOKEN) are NOT stored here — use
+# `.dev.vars` locally and `wrangler secret put` in production.
+# See docs/cloudflare.md.
+
 name = "ai-memory-mcp"
 main = "src/index.ts"
 compatibility_date = "2026-03-05"
 compatibility_flags = ["nodejs_compat"]
 
+# Workers AI — embeddings via @cf/baai/bge-base-en-v1.5 (768 dims).
 [ai]
 binding = "AI"
 
+# Vectorize — semantic memory index (cosine, 768 dims).
 [[vectorize]]
 binding = "MEMORY_INDEX"
 index_name = "ai-memory-semantic-v1"
 
+# D1 — primary store for users, brains, memories, graph, OAuth.
 [[d1_databases]]
 binding = "DB"
 database_name = "ai-memory"
 database_id = "f881cdf0-9109-45a8-863f-65942a81a7bf"
 
+# KV — login/signup brute-force rate limiting.
 [[kv_namespaces]]
 binding = "RATE_LIMIT_KV"
 id = "45fefc1b7f5f4fa3a8326a9db2b1477d"
 
+# Optional Wrangler environment: `npx wrangler deploy --env dev`
+# Shares the D1 database name with production in this template; use a
+# separate D1 if you need full isolation.
 [env.dev]
 name = "ai-memory-mcp-dev"
 
